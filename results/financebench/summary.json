@@ -1,0 +1,196 @@
+{
+  "sparse": {
+    "method": "SPARSE \u2014 BM25 (bm25s)",
+    "n_queries": 150,
+    "dataset": "financebench",
+    "recall@1": {
+      "mean": 0.2533,
+      "std": 0.4207
+    },
+    "precision@1": {
+      "mean": 0.28,
+      "std": 0.4505
+    },
+    "mrr@1": {
+      "mean": 0.28,
+      "std": 0.4505
+    },
+    "recall@2": {
+      "mean": 0.3389,
+      "std": 0.4571
+    },
+    "precision@2": {
+      "mean": 0.2,
+      "std": 0.2717
+    },
+    "mrr@2": {
+      "mean": 0.3267,
+      "std": 0.4449
+    },
+    "recall@3": {
+      "mean": 0.4156,
+      "std": 0.4792
+    },
+    "precision@3": {
+      "mean": 0.1622,
+      "std": 0.1921
+    },
+    "mrr@3": {
+      "mean": 0.3511,
+      "std": 0.4353
+    },
+    "retrieval_time_ms": {
+      "mean": 0.3984,
+      "std": 0.4954
+    },
+    "tokenize_time_ms": {
+      "mean": 0.1943,
+      "std": 0.2552
+    },
+    "score_time_ms": {
+      "mean": 0.204,
+      "std": 0.2425
+    },
+    "ttft_ms": {
+      "mean": 2.1726,
+      "std": 3.9987,
+      "n": 150
+    },
+    "gen_time_ms": {
+      "mean": 1620.3273,
+      "std": 488.8236,
+      "n": 150
+    }
+  },
+  "dense": {
+    "method": "DENSE \u2014 FAISS + all-MiniLM-L6-v2",
+    "n_queries": 150,
+    "dataset": "financebench",
+    "recall@1": {
+      "mean": 0.3,
+      "std": 0.4412
+    },
+    "precision@1": {
+      "mean": 0.3333,
+      "std": 0.473
+    },
+    "mrr@1": {
+      "mean": 0.3333,
+      "std": 0.473
+    },
+    "recall@2": {
+      "mean": 0.4667,
+      "std": 0.48
+    },
+    "precision@2": {
+      "mean": 0.2633,
+      "std": 0.2698
+    },
+    "mrr@2": {
+      "mean": 0.42,
+      "std": 0.449
+    },
+    "recall@3": {
+      "mean": 0.54,
+      "std": 0.476
+    },
+    "precision@3": {
+      "mean": 0.2111,
+      "std": 0.1908
+    },
+    "mrr@3": {
+      "mean": 0.4467,
+      "std": 0.4328
+    },
+    "retrieval_time_ms": {
+      "mean": 16.7811,
+      "std": 14.8582
+    },
+    "query_embed_time_ms": {
+      "mean": 16.69,
+      "std": 14.8091
+    },
+    "search_time_ms": {
+      "mean": 0.0911,
+      "std": 0.2392
+    },
+    "ttft_ms": {
+      "mean": 1.6944,
+      "std": 1.0363,
+      "n": 150
+    },
+    "gen_time_ms": {
+      "mean": 1694.7044,
+      "std": 521.9693,
+      "n": 150
+    }
+  },
+  "comparison": {
+    "recall@1": {
+      "sparse": 0.2533,
+      "dense": 0.3,
+      "delta": 0.0467,
+      "better": "dense"
+    },
+    "precision@1": {
+      "sparse": 0.28,
+      "dense": 0.3333,
+      "delta": 0.0533,
+      "better": "dense"
+    },
+    "mrr@1": {
+      "sparse": 0.28,
+      "dense": 0.3333,
+      "delta": 0.0533,
+      "better": "dense"
+    },
+    "recall@2": {
+      "sparse": 0.3389,
+      "dense": 0.4667,
+      "delta": 0.1278,
+      "better": "dense"
+    },
+    "precision@2": {
+      "sparse": 0.2,
+      "dense": 0.2633,
+      "delta": 0.0633,
+      "better": "dense"
+    },
+    "mrr@2": {
+      "sparse": 0.3267,
+      "dense": 0.42,
+      "delta": 0.0933,
+      "better": "dense"
+    },
+    "recall@3": {
+      "sparse": 0.4156,
+      "dense": 0.54,
+      "delta": 0.1244,
+      "better": "dense"
+    },
+    "precision@3": {
+      "sparse": 0.1622,
+      "dense": 0.2111,
+      "delta": 0.0489,
+      "better": "dense"
+    },
+    "mrr@3": {
+      "sparse": 0.3511,
+      "dense": 0.4467,
+      "delta": 0.0956,
+      "better": "dense"
+    },
+    "retrieval_time_ms": {
+      "sparse": 0.3984,
+      "dense": 16.7811,
+      "delta": 16.38,
+      "better": "sparse"
+    },
+    "ttft_ms": {
+      "sparse": 2.1726,
+      "dense": 1.6944,
+      "delta": -0.48,
+      "better": "dense"
+    }
+  }
+}
