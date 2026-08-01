@@ -92,16 +92,16 @@ def plot_accuracy_all():
 
 def plot_by_type_all():
     """
-    Plot one grouped-bar chart of each metric per question type
+    Plot one chart per question type with recall@k, precision@k, and mrr@k panels
     """
     rows = load_by_type()
     metric_names = ["recall", "precision", "mrr"]
     labels = [f"@{k}" for k in K_VALUES]
 
-    for name in metric_names:
-        fig, axes = plt.subplots(1, len(QUESTION_TYPES), figsize=(12, 4), sharey=True)
+    for qtype in QUESTION_TYPES:
+        fig, axes = plt.subplots(1, len(metric_names), figsize=(12, 4), sharey=True)
         width = 0.35
-        for ax, qtype in zip(axes, QUESTION_TYPES):
+        for ax, name in zip(axes, metric_names):
             sparse_vals = []
             dense_vals = []
             for k in K_VALUES:
@@ -115,14 +115,15 @@ def plot_by_type_all():
             annotate_bars(ax, b2, "%.4f")
             ax.set_xticks(list(x))
             ax.set_xticklabels(labels, fontsize=8)
-            ax.set_title(qtype, fontsize=10)
+            ax.set_title(name.capitalize(), fontsize=10)
             ax.set_ylim(0, 0.7)
-        axes[0].set_ylabel(name.capitalize())
+        axes[0].set_ylabel("Value")
         axes[0].legend(fontsize=8)
         fig.supxlabel("Top-k value")
-        fig.suptitle(f"{name.capitalize()}@k by question type (N=50 each)")
+        fig.suptitle(f"{qtype} (N=50)")
         fig.tight_layout()
-        fig.savefig(os.path.join(FIGURE_DIR, f"accuracy_by_type_{name}.png"), dpi=300)
+        filename = qtype.replace("-", "_")
+        fig.savefig(os.path.join(FIGURE_DIR, f"accuracy_by_type_{filename}.png"), dpi=300)
         plt.close(fig)
 
 
