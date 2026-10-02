@@ -1,5 +1,6 @@
 import json
 import os
+import statistics
 import time
 from datasets import load_dataset
 import faiss
@@ -14,7 +15,34 @@ RESULTS_DIR = "results/financebench"
 K_VALUES = [1, 2, 3]
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 LLM_NAME = "Qwen/Qwen2.5-0.5B"
-DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
+AUTO_DEVICE = "cpu"
+DEVICE = os.environ.get("FINBENCH_DEVICE") or AUTO_DEVICE
+RUN_TAG = os.environ.get("FINBENCH_TAG", "")
+IS_WARMUP = os.environ.get("FINBENCH_WARMUP") == "1"
+METHOD = "dense"
+TRIALS_SUBDIR = os.path.join(RESULTS_DIR, "trials")
+# Tagged runs are trials and live in their own per-method folder; an untagged run is a
+# single baseline pass and stays at the top level for plots.py to pick up.
+OUT_DIR = os.path.join(TRIALS_SUBDIR, METHOD) if RUN_TAG else RESULTS_DIR
+OUT_PATH = os.path.join(OUT_DIR, f"{METHOD}_results{RUN_TAG}.json")
+ACCURACY_METRICS = [f"{m}@{k}" for k in K_VALUES for m in ("recall", "precision", "mrr")]
+TIMING_METRICS = [
+    "query_embed_time_ms",
+    "search_time_ms",
+    "retrieval_time_ms",
+    "search_to_first_token_ms",
+    "prompt_prep_time_ms",
+    "full_ttft_ms",
+    "full_gen_time_ms",
+]
+
+
+def sync_device():
+    """
+    Block until queued device work has completed so timings include GPU execution
+    """
+    if DEVICE == "mps":
+        torch.mps.synchronize()
 
 
 def build_corpus(dataset):
@@ -54,15 +82,21 @@ def get_correct_indices(row, lookup):
 class TimedStreamer(BaseStreamer):
     """
     Streamer that records the time of the first generated token
+    Skips the initial put of the full prompt so the timing reflects prefill
     Attributes:
         first_token_time (float or None): Time when the first token was produced
     """
     def __init__(self):
         super().__init__()
         self.first_token_time = None
+        self.prompt_done = False
 
     def put(self, value):
+        if not self.prompt_done:
+            self.prompt_done = True
+            return
         if self.first_token_time is None:
+            sync_device()
             self.first_token_time = time.perf_counter()
 
     def end(self):
@@ -90,6 +124,35 @@ def compute_metrics(retrieved, correct, k):
             mrr = 1.0 / rank
             break
     return recall, precision, mrr
+
+
+def save_results(results):
+    """
+    Save the per-query results for this trial, plus a file holding this trial's average metrics
+    Args:
+        results (list): Per-query result dicts collected during this trial
+    """
+    with open(OUT_PATH, "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"Saved {OUT_PATH}")
+
+    averages = {}
+    for metric in ACCURACY_METRICS + TIMING_METRICS:
+        values = [r[metric] for r in results if r.get(metric) is not None]
+        averages[metric] = round(statistics.mean(values), 4) if values else None
+
+    avg_path = os.path.join(OUT_DIR, f"{METHOD}{RUN_TAG}_avg.json")
+    payload = {
+        "method": METHOD,
+        "trial": RUN_TAG.lstrip("_") or "single",
+        "device": DEVICE,
+        "n_queries": len(results),
+        "mean_metrics": averages,
+    }
+    os.makedirs(OUT_DIR, exist_ok=True)
+    with open(avg_path, "w") as f:
+        json.dump(payload, f, indent=2)
+    print(f"Saved {avg_path}")
 
 
 def main():
@@ -126,17 +189,20 @@ def main():
         correct = get_correct_indices(row, corpus_lookup)
         question_type = row["question_type"]
 
-        t0 = time.perf_counter()
+        sync_device()
+        t_query_start = time.perf_counter()
         query_emb = embedder.encode([query], convert_to_numpy=True)
-        query_embed_time = time.perf_counter() - t0
-
-        t1 = time.perf_counter()
         faiss.normalize_L2(query_emb)
+        sync_device()
+        query_embed_time = time.perf_counter() - t_query_start
+
         top_k = min(max_k, len(corpus_texts))
         scores, idxs = index.search(query_emb, top_k)
-        search_time = time.perf_counter() - t1
+        sync_device()
+        t_retrieval_done = time.perf_counter()
 
-        retrieval_time = query_embed_time + search_time
+        retrieval_time = t_retrieval_done - t_query_start
+        search_time = retrieval_time - query_embed_time
         retrieved_indices = idxs[0].tolist()
 
         entry = {
@@ -158,21 +224,33 @@ def main():
         inputs = tokenizer(prompt, return_tensors="pt").to(DEVICE)
 
         streamer = TimedStreamer()
+        t_prompt = time.perf_counter()
+        inputs = tokenizer(prompt, return_tensors="pt").to(DEVICE)
+        sync_device()
+        prompt_prep_time = time.perf_counter() - t_prompt
+
         t_gen = time.perf_counter()
         with torch.inference_mode():
             model.generate(**inputs, streamer=streamer, max_new_tokens=50, do_sample=False)
+        sync_device()
         gen_time = time.perf_counter() - t_gen
-        ttft = streamer.first_token_time - t_gen if streamer.first_token_time else None
 
-        entry["ttft_ms"] = ttft * 1000 if ttft else None
-        entry["gen_time_ms"] = gen_time * 1000
+        entry["prompt_prep_time_ms"] = prompt_prep_time * 1000
+        entry["full_gen_time_ms"] = gen_time * 1000
+        if streamer.first_token_time is None:
+            entry["search_to_first_token_ms"] = None
+            entry["full_ttft_ms"] = None
+        else:
+            entry["search_to_first_token_ms"] = (streamer.first_token_time - t_retrieval_done) * 1000
+            entry["full_ttft_ms"] = (streamer.first_token_time - t_query_start) * 1000
 
         results.append(entry)
 
-    path = os.path.join(RESULTS_DIR, "dense_results.json")
-    with open(path, "w") as f:
-        json.dump(results, f, indent=2)
-    print(f"Saved {path}")
+    if IS_WARMUP:
+        print("Warmup run complete, results discarded")
+        return
+
+    save_results(results)
 
 
 if __name__ == "__main__":

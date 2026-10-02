@@ -1,0 +1,11 @@
+method,metric_label,metric,mean_ms,std_ms,n_trials
+sparse,Query tokenize time,query_tokenize_time_ms,0.1534,0.0233,10
+sparse,Score time,score_time_ms,0.158,0.0216,10
+sparse,Score to first token time,score_to_first_token_ms,426.4941,13.9357,10
+sparse,Full TTFT,full_ttft_ms,426.8056,13.9645,10
+sparse,Full generation time,full_gen_time_ms,1969.8078,62.2258,10
+dense,Query embedding time,query_embed_time_ms,4.7574,0.3246,10
+dense,Search time,search_time_ms,0.078,0.0165,10
+dense,Search to first token time,search_to_first_token_ms,585.3347,12.0506,10
+dense,Full TTFT,full_ttft_ms,590.1701,12.3273,10
+dense,Full generation time,full_gen_time_ms,2198.9343,64.7774,10

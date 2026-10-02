@@ -1,0 +1,24 @@
+{
+  "method": "dense",
+  "trial": "trial_03",
+  "device": "cpu",
+  "n_queries": 150,
+  "mean_metrics": {
+    "recall@1": 0.3,
+    "precision@1": 0.3333,
+    "mrr@1": 0.3333,
+    "recall@2": 0.4667,
+    "precision@2": 0.2633,
+    "mrr@2": 0.42,
+    "recall@3": 0.54,
+    "precision@3": 0.2111,
+    "mrr@3": 0.4467,
+    "query_embed_time_ms": 5.1103,
+    "search_time_ms": 0.0941,
+    "retrieval_time_ms": 5.2045,
+    "search_to_first_token_ms": 595.2013,
+    "prompt_prep_time_ms": 0.761,
+    "full_ttft_ms": 600.4057,
+    "full_gen_time_ms": 2231.9033
+  }
+}
